@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum WorkspaceCity {
+  Mangaluru
+  Bengaluru
+  Hubballi
+}
+
+enum WorkspaceKind {
+  coworking
+  library
+  study
+  private
+}
+
+enum Amenity {
+  wifi
+  power
+  ac
+  meeting
+  coffee
+  quiet
+}
+
+enum ReservationStatus {
+  HELD
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique @db.VarChar(254)
+  name         String   @db.VarChar(80)
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  reservations Reservation[]
+  idempotency  IdempotencyKey[]
+  auditEvents  AuditLog[]
+}
+
+model Workspace {
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                 String        @unique @db.VarChar(120)
+  name                 String
+  city                 WorkspaceCity
+  neighborhood         String
+  address              String
+  timezone             String        @default("Asia/Kolkata")
+  kind                 WorkspaceKind
+  description          String
+  opensMinute          Int
+  closesMinute         Int
+  hourlyPricePaise     Int
+  ratingTenths         Int
+  sampleAvailableSeats Int
+  amenities            Amenity[]
+  imageSrc             String
+  imageAlt             String
+  featured             Boolean       @default(false)
+  published            Boolean       @default(true)
+  createdAt            DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(3)
+
+  seatCategories SeatCategory[]
+  timeSlots      TimeSlot[]
+  reservations   Reservation[]
+
+  @@index([city, published])
+  @@index([kind, published])
+  @@index([amenities], type: Gin)
+}
+
+model SeatCategory {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId    String    @db.Uuid
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  name           String
+  displayOrder   Int
+  slotPricePaise Int
+
+  seats Seat[]
+
+  @@unique([workspaceId, name])
+  @@unique([id, workspaceId])
+}
+
+model Seat {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String       @db.Uuid
+  categoryId  String       @db.Uuid
+  category    SeatCategory @relation(fields: [categoryId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  code        String
+  gridRow     Int
+  gridColumn  Int
+  active      Boolean      @default(true)
+  version     Int          @default(0)
+
+  slots SeatSlot[]
+
+  @@unique([workspaceId, code])
+  @@unique([id, workspaceId])
+  @@index([categoryId, workspaceId])
+}
+
+model TimeSlot {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String    @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  startsAt    DateTime  @db.Timestamptz(3)
+  endsAt      DateTime  @db.Timestamptz(3)
+  active      Boolean   @default(true)
+  version     Int       @default(0)
+
+  seats SeatSlot[]
+
+  @@unique([workspaceId, startsAt])
+  @@unique([id, workspaceId])
+}
+
+model SeatSlot {
+  seatId            String       @db.Uuid
+  timeSlotId        String       @db.Uuid
+  workspaceId       String       @db.Uuid
+  holdReservationId String?      @db.Uuid
+  holdExpiresAt     DateTime?    @db.Timestamptz(3)
+  seat              Seat         @relation(fields: [seatId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  timeSlot          TimeSlot     @relation(fields: [timeSlotId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  holdReservation   Reservation? @relation("InventoryHold", fields: [holdReservationId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+
+  items      ReservationItem[]
+  allocation BookingAllocation?
+
+  @@id([seatId, timeSlotId])
+  @@unique([seatId, timeSlotId, workspaceId])
+  @@index([timeSlotId, workspaceId])
+  @@index([holdReservationId])
+  @@index([holdExpiresAt])
+}
+
+model Reservation {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String            @db.Uuid
+  workspaceId      String            @db.Uuid
+  owner            User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  status           ReservationStatus @default(HELD)
+  expiresAt        DateTime          @db.Timestamptz(3)
+  totalAmountPaise Int
+  bookingReference String?           @unique
+  confirmedAt      DateTime?         @db.Timestamptz(3)
+  cancelledAt      DateTime?         @db.Timestamptz(3)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+
+  items    ReservationItem[]
+  holds    SeatSlot[]        @relation("InventoryHold")
+  payments Payment[]
+
+  @@unique([id, workspaceId])
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+  @@index([workspaceId, createdAt])
+}
+
+model ReservationItem {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reservationId  String      @db.Uuid
+  workspaceId    String      @db.Uuid
+  seatId         String      @db.Uuid
+  timeSlotId     String      @db.Uuid
+  seatCode       String
+  unitPricePaise Int
+  reservation    Reservation @relation(fields: [reservationId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  seatSlot       SeatSlot    @relation(fields: [seatId, timeSlotId, workspaceId], references: [seatId, timeSlotId, workspaceId], onDelete: Restrict)
+
+  allocation BookingAllocation?
+
+  @@unique([reservationId, seatId, timeSlotId])
+  @@unique([id, seatId, timeSlotId])
+  @@index([seatId, timeSlotId, workspaceId])
+}
+
+model BookingAllocation {
+  seatId            String          @db.Uuid
+  timeSlotId        String          @db.Uuid
+  reservationItemId String          @unique @db.Uuid
+  seatSlot          SeatSlot        @relation(fields: [seatId, timeSlotId], references: [seatId, timeSlotId], onDelete: Restrict)
+  reservationItem   ReservationItem @relation(fields: [reservationItemId, seatId, timeSlotId], references: [id, seatId, timeSlotId], onDelete: Restrict)
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@id([seatId, timeSlotId])
+  @@unique([reservationItemId, seatId, timeSlotId], map: "BookingAllocation_item_pair_key")
+  @@index([timeSlotId])
+}
+
+model Payment {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reservationId String        @db.Uuid
+  reservation   Reservation   @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  attemptRef        String        @unique
+  provider          String        @default("LEGACY")
+  providerPaymentId String?
+  checkoutAccessKey String?
+  checkoutClaimedAt DateTime? @db.Timestamptz(3)
+  amountPaise   Int
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@unique([provider, providerPaymentId])
+  @@index([reservationId, createdAt])
+}
+
+model IdempotencyKey {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String            @db.Uuid
+  user           User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  operation      String            @db.VarChar(60)
+  key            String            @db.VarChar(128)
+  requestHash    String            @db.Char(64)
+  status         IdempotencyStatus @default(PROCESSING)
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, operation, key])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId    String?  @db.Uuid
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  reason     String?
+  requestId  String?
+  instanceId String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([action, createdAt])
+  @@index([entityType, entityId, createdAt])
+}
