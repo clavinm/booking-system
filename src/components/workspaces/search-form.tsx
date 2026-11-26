@@ -1,5 +1,5 @@
 import Form from "next/form";
-import { ChevronDown, MapPin, Search } from "lucide-react";
+import { ArrowRight, ChevronDown, MapPin, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cities } from "@/types/workspace";
 
@@ -20,7 +20,7 @@ export function SearchForm() {
         </select>
         <ChevronDown size={16} aria-hidden="true" />
       </label>
-      <Button type="submit">Search spaces</Button>
+      <Button type="submit" data-hero-action>Search spaces <ArrowRight size={18} aria-hidden="true" /></Button>
     </Form>
   );
 }

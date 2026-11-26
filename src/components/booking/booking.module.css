@@ -109,7 +109,7 @@
 .seat:disabled { cursor: default; }
 .seat:focus-visible { outline-offset: 1px; }
 
-.summary { position: sticky; top: 1rem; display: grid; gap: .95rem; }
+.summary { position: sticky; top: 5.3rem; display: grid; gap: .95rem; }
 .summaryMeta { display: grid; gap: .35rem; color: var(--muted); font-size: .875rem; }
 .summaryMeta p, .emptySelection { display: flex; align-items: center; gap: .45rem; }
 .summaryMeta svg, .emptySelection svg { flex-shrink: 0; }

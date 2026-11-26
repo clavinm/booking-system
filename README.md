@@ -2,7 +2,7 @@
 
 **Find your space. Book your seat.**
 
-SeatSync is a learning project for a distributed workspace reservation platform. Through Phase 7, it includes a PostgreSQL-backed catalog of eight fictional workspaces across Mangaluru, Bengaluru and Hubballi, plus registration, login, a private account page and administrator access checks. The seat picker reads live layouts, upcoming slots and seat availability from PostgreSQL. Discovery cards still display their labeled sample ratings and counts. Signed-in users can hold multiple seats atomically, see their deadline and cancel before the slot begins. Redis helps coordinate competing requests when configured. PostgreSQL still decides ownership and expiry. Easebuzz sandbox checkout verifies test payments before booking and supports retry-safe holds and confirmations. Members can manage their bookings, and administrators can view live metrics and manage inventory.
+SeatSync is a learning project for a distributed workspace reservation platform. Through Phase 8, it includes a PostgreSQL-backed catalog of eight fictional workspaces across Mangaluru, Bengaluru and Hubballi, plus registration, login, a private account page and administrator access checks. The seat picker reads live layouts, upcoming slots and seat availability from PostgreSQL. Discovery cards still display their labeled sample ratings and counts. Signed-in users can hold multiple seats atomically, see their deadline and cancel before the slot begins. Redis helps coordinate competing requests when configured. PostgreSQL still decides ownership and expiry. Easebuzz sandbox checkout verifies test payments before booking and supports retry-safe holds and confirmations. Members can manage their bookings, and administrators can view live metrics and manage inventory.
 
 ![SeatSync discovery homepage](docs/phase-1-homepage.jpg)
 
@@ -63,6 +63,7 @@ npm run build
 - [Phase 5 walkthrough](docs/phase-5.md) covers Redis keys, locking, TTL hints, safe release, caching and local tests.
 - [Phase 6 walkthrough](docs/phase-6.md) covers Easebuzz sandbox setup, payment verification and idempotent requests.
 - [Phase 7 walkthrough](docs/phase-7.md) covers member bookings, admin inventory, live metrics and page transitions.
+- [Phase 8 walkthrough](docs/phase-8.md) covers the engineering lab, isolated local setup, and measured distributed k6 tests.
 - [Phase 4 walkthrough](docs/phase-4.md) follows a seat hold through PostgreSQL row locks, expiry, confirmation and cancellation.
 - [Phase 3 walkthrough](docs/phase-3.md) explains the seat map, live availability, timezone handling and polling.
 - [Phase 2 walkthrough](docs/phase-2.md) explains the migration, the seed, PostgreSQL-backed discovery, and the login and role checks.

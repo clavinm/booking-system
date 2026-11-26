@@ -1,6 +1,7 @@
-import { Armchair, MapPin } from "lucide-react";
+import { Armchair } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { HeaderNavigation } from "@/components/home/header-navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/services/current-user";
 
@@ -14,20 +15,20 @@ export function Brand() {
 }
 
 export function SiteHeader() {
+  const account = <Suspense fallback={<span className="account-nav-placeholder" aria-hidden="true" />}><AccountNavigation /></Suspense>;
+
   return (
-    <header className="site-header">
-      <div className="container-wide header-inner">
-        <Brand />
-        <nav aria-label="Main navigation" className="main-nav">
-          <Link href="/workspaces">Explore spaces</Link>
-          <Link href="/#how-it-works">How it works</Link>
-        </nav>
-        <div className="header-actions">
-          <Link className="header-location" href="/#locations"><MapPin size={17} aria-hidden="true" /> Locations</Link>
-          <Suspense fallback={<span className="account-nav-placeholder" aria-hidden="true" />}><AccountNavigation /></Suspense>
+    <Suspense fallback={
+      <header className="site-header">
+        <div className="container-wide header-inner">
+          <Brand />
+          <nav className="header-fallback" aria-label="Main navigation"><Link href="/workspaces">Explore spaces</Link></nav>
+          <div className="header-actions">{account}</div>
         </div>
-      </div>
-    </header>
+      </header>
+    }>
+      <HeaderNavigation brand={<Brand />} account={account} />
+    </Suspense>
   );
 }
 

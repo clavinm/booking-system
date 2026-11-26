@@ -3,6 +3,7 @@ import Link from "next/link";
 import { updateInventory } from "@/app/admin/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { bookingDayLabel, seatPrice, slotLabel, workspaceDate } from "@/lib/booking-format";
+import { engineeringLabEnabled } from "@/lib/engineering-env";
 import { readAdminInventory, readAdminMetrics } from "@/repositories/dashboard";
 import styles from "./dashboard.module.css";
 
@@ -48,7 +49,10 @@ export async function AdminDashboard({ workspaceId, panel, saved, error, page }:
     <div className={styles.shell}>
       <header className={styles.banner}>
         <div><p className={styles.bannerLabel}>SeatSync operations</p><h1>Admin dashboard</h1><p>Monitor reservations and manage workspace inventory.</p></div>
-        <Link className={buttonVariants({ variant: "outline" })} href="/account">My bookings</Link>
+        <div className={styles.bannerActions}>
+          {engineeringLabEnabled() && <Link className={buttonVariants()} href="/engineering-lab">Engineering lab</Link>}
+          <Link className={buttonVariants({ variant: "outline" })} href="/account">My bookings</Link>
+        </div>
       </header>
       <section className={styles.panel} aria-labelledby="admin-overview">
         <div className={styles.sectionHead}><h2 id="admin-overview">Overview</h2><small>As of {timestamp.format(metrics.asOf)} IST</small></div>

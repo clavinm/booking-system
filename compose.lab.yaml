@@ -1,0 +1,77 @@
+x-lab-app: &lab-app
+  image: seatsync-lab:local
+  build:
+    context: .
+    dockerfile: Dockerfile.lab
+  depends_on:
+    lab-init:
+      condition: service_completed_successfully
+    lab-redis:
+      condition: service_healthy
+
+x-lab-env: &lab-env
+  DATABASE_URL: postgresql://seatsync:seatsync_lab_local@lab-db:5432/seatsync_lab
+  REDIS_URL: redis://lab-redis:6379
+  SEATSYNC_LAB: "1"
+  AUTH_SECRET: ${SEATSYNC_LAB_AUTH_SECRET:?Set a random secret for the lab stack}
+
+services:
+  lab-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: seatsync_lab
+      POSTGRES_USER: seatsync
+      POSTGRES_PASSWORD: seatsync_lab_local
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - lab-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seatsync -d seatsync_lab"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  lab-redis:
+    image: redis:7.4.12
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "127.0.0.1:56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  lab-init:
+    image: seatsync-lab:local
+    build:
+      context: .
+      dockerfile: Dockerfile.lab
+    environment:
+      <<: *lab-env
+    command: ["sh", "-c", "npm run db:deploy && npm run db:seed"]
+    depends_on:
+      lab-db:
+        condition: service_healthy
+
+  app-a:
+    <<: *lab-app
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      <<: *lab-env
+      AUTH_URL: http://127.0.0.1:3001
+      APP_INSTANCE_ID: app-a
+
+  app-b:
+    <<: *lab-app
+    ports:
+      - "127.0.0.1:3002:3000"
+    environment:
+      <<: *lab-env
+      AUTH_URL: http://127.0.0.1:3002
+      APP_INSTANCE_ID: app-b
+
+volumes:
+  lab-data:

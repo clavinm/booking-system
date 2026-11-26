@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
 import "@fontsource-variable/geist";
+import "@fontsource-variable/manrope";
 import "@/app/globals.css";
+import "@/app/header.css";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
